@@ -2,8 +2,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>父亲节快乐</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>老逗，父亲节快乐</title>
     <style>
         * {
             margin: 0;
@@ -30,50 +30,105 @@
             font-size: 8vw;
             font-weight: bold;
             color: #fff;
-            text-shadow: 0 0 15px #ffd700, 0 0 30px #ff6600;
             white-space: nowrap;
+            opacity: 0;
+            animation: textFadeIn 3s ease forwards, textBreath 3s infinite ease-in-out;
+        }
+        /* 文字缓慢出现 */
+        @keyframes textFadeIn {
+            to { opacity: 1; }
+        }
+        /* 文字呼吸发光 */
+        @keyframes textBreath {
+            0%,100% { text-shadow: 0 0 15px #ffd700, 0 0 30px #ff6600, 0 0 50px #ff9922; }
+            50% { text-shadow: 0 0 25px #ffd700, 0 0 50px #ff6600, 0 0 80px #ff9922; }
+        }
+        audio {
+            display: none;
+        }
+        .music-tip {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255,255,255,0.5);
+            font-size: 3vw;
+            z-index: 999;
+            animation: tipFade 4s infinite ease-in-out;
+        }
+        @keyframes tipFade {
+            0%,100% { opacity:0.3; }
+            50% { opacity:0.7; }
         }
     </style>
 </head>
 <body>
     <div class="text-box">老逗，父亲节快乐！</div>
+    <div class="music-tip">轻点屏幕，播放《单车》</div>
+    <audio id="bgMusic" loop preload="auto">
+        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+    
     <canvas id="starCanvas"></canvas>
+
     <script>
-        // 星云星空粒子
+        // 微信音频兼容
+        const audio = document.getElementById('bgMusic');
+        document.addEventListener('WeixinJSBridgeReady', () => {
+            audio.volume = 0.6;
+            audio.play().catch(()=>{});
+        }, false);
+        document.body.addEventListener('touchstart', function playAudio(){
+            audio.volume = 0.6;
+            audio.play();
+            document.body.removeEventListener('touchstart', playAudio);
+        });
+
         const canvas = document.getElementById('starCanvas');
         const ctx = canvas.getContext('2d');
         let width = canvas.width = window.innerWidth;
         let height = canvas.height = window.innerHeight;
+        let mouseX = 0, mouseY = 0;
 
+        // 手机滑动视差
+        window.addEventListener('touchmove', (e)=>{
+            mouseX = e.touches[0].clientX / width - 0.5;
+            mouseY = e.touches[0].clientY / height - 0.5;
+        })
         window.addEventListener('resize', () => {
             width = canvas.width = window.innerWidth;
             height = canvas.height = window.innerHeight;
         })
 
+        // 双层星云粒子
         class Star {
-            constructor() {
+            constructor(layer) {
+                this.layer = layer;
                 this.x = Math.random() * width;
                 this.y = Math.random() * height;
-                this.r = Math.random() * 1.5 + 0.3;
-                this.speed = Math.random() * 0.3 + 0.1;
+                this.r = Math.random() * (layer===1 ? 1.5 : 0.8) + 0.2;
+                this.speed = Math.random() * (layer===1 ? 0.3 : 0.1) + 0.05;
                 this.opacity = Math.random();
+                this.baseOpacity = this.opacity;
             }
             update() {
-                this.x -= this.speed;
+                this.x -= this.speed + mouseX * 0.2;
+                this.y += mouseY * 0.2;
                 if(this.x < 0) this.x = width;
-                this.opacity = Math.sin(Date.now() / 1000 + this.y) * 0.5 + 0.5;
+                this.opacity = this.baseOpacity * (Math.sin(Date.now() / 1200 + this.y) * 0.4 + 0.6);
             }
             draw() {
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(220, 180, 255, ${this.opacity})`;
+                const color = this.layer===1 ? `rgba(220, 180, 255, ${this.opacity})` : `rgba(180,220,255,${this.opacity*0.6})`;
+                ctx.fillStyle = color;
                 ctx.fill();
             }
         }
+        // 两层星空
+        const stars1 = Array.from({length: 600}, () => new Star(1));
+        const stars2 = Array.from({length: 300}, () => new Star(2));
 
-        const stars = Array.from({length: 600}, () => new Star());
-
-        // 烟花逻辑
+        // 升级版烟花（两种款式）
         class Firework {
             constructor() {
                 this.x = Math.random() * width;
@@ -82,11 +137,19 @@
                 this.speedY = -6 - Math.random() * 3;
                 this.particles = [];
                 this.exploded = false;
-                this.color = `hsl(${Math.random() * 360}, 100%, 60%)`;
+                this.type = Math.random()>0.5 ? "gold" : "color";
+                this.color = this.type==="gold" ? "#ffd700" : `hsl(${Math.random() * 360}, 100%, 60%)`;
             }
             update() {
                 if (!this.exploded) {
                     this.y += this.speedY;
+                    // 流星拖尾
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y+10);
+                    ctx.lineTo(this.x, this.y);
+                    ctx.strokeStyle = this.color;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
                     if(this.y <= this.targetY) {
                         this.explode();
                         this.exploded = true;
@@ -97,20 +160,22 @@
                         p.y += p.vy;
                         p.vy += 0.12;
                         p.life--;
+                        p.vx *= 0.98;
                     })
                     this.particles = this.particles.filter(p => p.life > 0);
                 }
             }
             explode() {
-                for(let i = 0; i < 80; i++) {
-                    const angle = Math.PI * 2 / 80 * i;
+                const count = this.type==="gold" ? 120 : 80;
+                for(let i = 0; i < count; i++) {
+                    const angle = Math.PI * 2 / count * i;
                     const spd = Math.random() * 4 + 2;
                     this.particles.push({
                         x: this.x,
                         y: this.y,
                         vx: Math.cos(angle) * spd,
                         vy: Math.sin(angle) * spd,
-                        life: 60,
+                        life: this.type==="gold" ? 80 : 60,
                         color: this.color
                     })
                 }
@@ -119,7 +184,7 @@
                 if(!this.exploded) {
                     ctx.beginPath();
                     ctx.arc(this.x, this.y, 3, 0, Math.PI*2);
-                    ctx.fillStyle = '#fff';
+                    ctx.fillStyle = this.color;
                     ctx.fill();
                 } else {
                     this.particles.forEach(p => {
@@ -133,12 +198,18 @@
         }
 
         const fireworks = [];
-        setInterval(() => fireworks.push(new Firework()), 800)
+        setInterval(() => fireworks.push(new Firework()), 700)
 
         function render() {
-            ctx.fillStyle = 'rgba(0,0,8,0.15)';
+            // 深空渐变底色
+            const gradient = ctx.createLinearGradient(0,0,0,height);
+            gradient.addColorStop(0, "#020010");
+            gradient.addColorStop(1, "#000518");
+            ctx.fillStyle = gradient;
             ctx.fillRect(0,0,width,height);
-            stars.forEach(s => {s.update(); s.draw()})
+
+            stars2.forEach(s => {s.update(); s.draw()})
+            stars1.forEach(s => {s.update(); s.draw()})
             fireworks.forEach(f => {f.update(); f.draw()})
             requestAnimationFrame(render);
         }
