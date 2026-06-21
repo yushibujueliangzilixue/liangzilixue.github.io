@@ -1,219 +1,286 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>老逗，父亲节快乐</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-        }
-        body {
-            width: 100vw;
-            height: 100vh;
-            background: #000;
-        }
-        canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: 1;
-        }
-        .text-box {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 99;
-            font-size: 8vw;
-            font-weight: bold;
-            color: #fff;
-            white-space: nowrap;
-            opacity: 0;
-            animation: textFadeIn 3s ease forwards, textBreath 3s infinite ease-in-out;
-        }
-        /* 文字缓慢出现 */
-        @keyframes textFadeIn {
-            to { opacity: 1; }
-        }
-        /* 文字呼吸发光 */
-        @keyframes textBreath {
-            0%,100% { text-shadow: 0 0 15px #ffd700, 0 0 30px #ff6600, 0 0 50px #ff9922; }
-            50% { text-shadow: 0 0 25px #ffd700, 0 0 50px #ff6600, 0 0 80px #ff9922; }
-        }
-        audio {
-            display: none;
-        }
-        .music-tip {
-            position: fixed;
-            bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: rgba(255,255,255,0.5);
-            font-size: 3vw;
-            z-index: 999;
-            animation: tipFade 4s infinite ease-in-out;
-        }
-        @keyframes tipFade {
-            0%,100% { opacity:0.3; }
-            50% { opacity:0.7; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>父亲节快乐 — 何建鹏</title>
+<style>
+*{margin:0;padding:0;overflow:hidden;}
+body{width:100vw;height:100vh;background:#000;font-family:"Microsoft YaHei",sans-serif;perspective:1600px;}
+
+/* 全局3D容器 */
+#galaxyWrap{
+  position:fixed;
+  width:100%;
+  height:100%;
+  transform-style:preserve-3d;
+  transform-origin:center center;
+}
+#galaxy{
+  position:absolute;
+  width:100%;
+  height:100%;
+  transform-style:preserve-3d;
+}
+
+/* 【核心修复】文字容器加半透明深色兜底背景 */
+.text3dBox{
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%) translateZ(200px);
+  transform-style:preserve-3d;
+  text-align:center;
+  z-index:999; /* 提升到最高层，绝对不会被粒子遮挡 */
+  padding: 20px 30px;
+  background: rgba(0,0,0,0.6); /* 半透明黑底兜底 */
+  border-radius: 12px;
+  backdrop-filter: blur(4px);
+}
+
+/* 【终极清晰】主文字：白色纯底+黑色硬描边+金色强发光 */
+.mainText{
+  font-size:8vw;
+  font-weight:900;
+  color:#ffffff;
+  /* 双重黑色描边，绝对清晰 */
+  -webkit-text-stroke: 2px #000;
+  text-stroke: 2px #000;
+  /* 金色外发光，氛围感不丢 */
+  text-shadow:
+    0 0 15px #ffdd55,
+    0 0 30px #ffaa00,
+    0 0 50px #ff7700;
+  margin-bottom:10px;
+  letter-spacing:3px;
+}
+
+/* 落款同样加描边和发光 */
+.subText{
+  font-size:4vw;
+  color:#fffbe0;
+  -webkit-text-stroke: 1px #000;
+  text-stroke: 1px #000;
+  text-shadow:
+    0 0 10px #ffcc44,
+    0 0 20px #ff9900;
+  letter-spacing:2px;
+}
+
+#fireCanvas{
+  position:fixed;
+  top:0;left:0;
+  z-index:101;
+  pointer-events:none;
+}
+.tip{
+  position:fixed;
+  bottom:32px;
+  left:50%;
+  transform:translateX(-50%);
+  color:rgba(255,255,255,0.7);
+  font-size:3vw;
+  z-index:999;
+  background: rgba(0,0,0,0.3);
+  padding: 5px 15px;
+  border-radius: 8px;
+}
+audio{display:none;}
+</style>
 </head>
 <body>
-    <div class="text-box">老逗，父亲节快乐！</div>
-    <div class="music-tip">轻点屏幕，播放《单车》</div>
-    <audio id="bgMusic" loop preload="auto">
-        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
-    
-    <canvas id="starCanvas"></canvas>
+<div id="galaxyWrap">
+  <div id="galaxy"></div>
+  <div class="text3dBox">
+    <div class="mainText">老逗，父亲节快乐！</div>
+    <div class="subText">——何建鹏</div>
+  </div>
+</div>
+<canvas id="fireCanvas"></canvas>
+<div class="tip">拖动旋转星云 | 双指缩放远近</div>
+<audio id="boomAudio" preload="auto">
+<source src="https://assets.mixkit.co/sfx/preview/mixkit-firework-burst-2796.mp3" type="audio/mpeg">
 
-    <script>
-        // 微信音频兼容
-        const audio = document.getElementById('bgMusic');
-        document.addEventListener('WeixinJSBridgeReady', () => {
-            audio.volume = 0.6;
-            audio.play().catch(()=>{});
-        }, false);
-        document.body.addEventListener('touchstart', function playAudio(){
-            audio.volume = 0.6;
-            audio.play();
-            document.body.removeEventListener('touchstart', playAudio);
-        });
 
-        const canvas = document.getElementById('starCanvas');
-        const ctx = canvas.getContext('2d');
-        let width = canvas.width = window.innerWidth;
-        let height = canvas.height = window.innerHeight;
-        let mouseX = 0, mouseY = 0;
+<script>
+// 1. 开场膨胀动画
+const wrap = document.getElementById('galaxyWrap');
+const galaxy = document.getElementById('galaxy');
+let rotateX = 0, rotateY = 0, scale = 0;
+let targetScale = 1;
+let touchStartX = 0, touchStartY = 0;
+let touchStartDist = 0;
+let isTouch = false;
 
-        // 手机滑动视差
-        window.addEventListener('touchmove', (e)=>{
-            mouseX = e.touches[0].clientX / width - 0.5;
-            mouseY = e.touches[0].clientY / height - 0.5;
-        })
-        window.addEventListener('resize', () => {
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
-        })
+const expandAnim = setInterval(()=>{
+  scale += 0.018;
+  if(scale >= 1){
+    scale = 1;
+    clearInterval(expandAnim);
+  }
+  wrap.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(${scale})`;
+},30);
 
-        // 双层星云粒子
-        class Star {
-            constructor(layer) {
-                this.layer = layer;
-                this.x = Math.random() * width;
-                this.y = Math.random() * height;
-                this.r = Math.random() * (layer===1 ? 1.5 : 0.8) + 0.2;
-                this.speed = Math.random() * (layer===1 ? 0.3 : 0.1) + 0.05;
-                this.opacity = Math.random();
-                this.baseOpacity = this.opacity;
-            }
-            update() {
-                this.x -= this.speed + mouseX * 0.2;
-                this.y += mouseY * 0.2;
-                if(this.x < 0) this.x = width;
-                this.opacity = this.baseOpacity * (Math.sin(Date.now() / 1200 + this.y) * 0.4 + 0.6);
-            }
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
-                const color = this.layer===1 ? `rgba(220, 180, 255, ${this.opacity})` : `rgba(180,220,255,${this.opacity*0.6})`;
-                ctx.fillStyle = color;
-                ctx.fill();
-            }
-        }
-        // 两层星空
-        const stars1 = Array.from({length: 600}, () => new Star(1));
-        const stars2 = Array.from({length: 300}, () => new Star(2));
+// 2. 生成3D星云粒子（进一步降低亮度，彻底不抢文字）
+function createStars(){
+  const count = 700;
+  for(let i=0;i<count;i++){
+    const star = document.createElement('div');
+    const size = Math.random()*2 + 0.2;
+    const depth = (Math.random()-0.5)*2200;
+    star.style.cssText = `
+      position:absolute;
+      width:${size}px;height:${size}px;
+      border-radius:50%;
+      background:rgba(200,180,240,${Math.random()*0.35+0.08});
+      box-shadow:0 0 ${size*1.5}px rgba(180,160,220,0.2);
+      top:${Math.random()*100}%;left:${Math.random()*100}%;
+      transform:translate3d(
+        ${(Math.random()-0.5)*1400}px,
+        ${(Math.random()-0.5)*1400}px,
+        ${depth}px
+      );
+    `;
+    galaxy.appendChild(star);
+  }
+}
+createStars();
 
-        // 升级版烟花（两种款式）
-        class Firework {
-            constructor() {
-                this.x = Math.random() * width;
-                this.y = height;
-                this.targetY = Math.random() * height * 0.4;
-                this.speedY = -6 - Math.random() * 3;
-                this.particles = [];
-                this.exploded = false;
-                this.type = Math.random()>0.5 ? "gold" : "color";
-                this.color = this.type==="gold" ? "#ffd700" : `hsl(${Math.random() * 360}, 100%, 60%)`;
-            }
-            update() {
-                if (!this.exploded) {
-                    this.y += this.speedY;
-                    // 流星拖尾
-                    ctx.beginPath();
-                    ctx.moveTo(this.x, this.y+10);
-                    ctx.lineTo(this.x, this.y);
-                    ctx.strokeStyle = this.color;
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                    if(this.y <= this.targetY) {
-                        this.explode();
-                        this.exploded = true;
-                    }
-                } else {
-                    this.particles.forEach(p => {
-                        p.x += p.vx;
-                        p.y += p.vy;
-                        p.vy += 0.12;
-                        p.life--;
-                        p.vx *= 0.98;
-                    })
-                    this.particles = this.particles.filter(p => p.life > 0);
-                }
-            }
-            explode() {
-                const count = this.type==="gold" ? 120 : 80;
-                for(let i = 0; i < count; i++) {
-                    const angle = Math.PI * 2 / count * i;
-                    const spd = Math.random() * 4 + 2;
-                    this.particles.push({
-                        x: this.x,
-                        y: this.y,
-                        vx: Math.cos(angle) * spd,
-                        vy: Math.sin(angle) * spd,
-                        life: this.type==="gold" ? 80 : 60,
-                        color: this.color
-                    })
-                }
-            }
-            draw() {
-                if(!this.exploded) {
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y, 3, 0, Math.PI*2);
-                    ctx.fillStyle = this.color;
-                    ctx.fill();
-                } else {
-                    this.particles.forEach(p => {
-                        ctx.beginPath();
-                        ctx.arc(p.x, p.y, 2, 0, Math.PI*2);
-                        ctx.fillStyle = p.color;
-                        ctx.fill();
-                    })
-                }
-            }
-        }
+// 3. 手势交互
+function getTouchDist(touches){
+  const dx = touches[0].clientX - touches[1].clientX;
+  const dy = touches[0].clientY - touches[1].clientY;
+  return Math.sqrt(dx*dx + dy*dy);
+}
+document.addEventListener('touchstart',e=>{
+  isTouch = true;
+  if(e.touches.length === 1){
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }else if(e.touches.length === 2){
+    touchStartDist = getTouchDist(e.touches);
+  }
+});
+document.addEventListener('touchmove',e=>{
+  if(!isTouch) return;
+  e.preventDefault();
+  if(e.touches.length === 1){
+    const dx = e.touches[0].clientX - touchStartX;
+    const dy = e.touches[0].clientY - touchStartY;
+    rotateY += dx * 0.3;
+    rotateX -= dy * 0.3;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }
+  if(e.touches.length === 2){
+    const dist = getTouchDist(e.touches);
+    const delta = dist - touchStartDist;
+    targetScale += delta * 0.0008;
+    targetScale = Math.max(0.4, Math.min(targetScale, 2.2));
+    touchStartDist = dist;
+  }
+  wrap.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(${scale * targetScale})`;
+});
+document.addEventListener('touchend',()=>{isTouch = false;});
 
-        const fireworks = [];
-        setInterval(() => fireworks.push(new Firework()), 700)
+// 4. 自动旋转
+function autoRotate(){
+  if(!isTouch){
+    rotateY += 0.06;
+    wrap.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(${scale * targetScale})`;
+  }
+  requestAnimationFrame(autoRotate);
+}
+autoRotate();
 
-        function render() {
-            // 深空渐变底色
-            const gradient = ctx.createLinearGradient(0,0,0,height);
-            gradient.addColorStop(0, "#020010");
-            gradient.addColorStop(1, "#000518");
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0,0,width,height);
+// 5. 烟花系统
+const canvas = document.getElementById('fireCanvas');
+const ctx = canvas.getContext('2d');
+let width = canvas.width = window.innerWidth;
+let height = canvas.height = window.innerHeight;
+window.addEventListener('resize',()=>{
+  width = canvas.width = window.innerWidth;
+  height = canvas.height = window.innerHeight;
+});
 
-            stars2.forEach(s => {s.update(); s.draw()})
-            stars1.forEach(s => {s.update(); s.draw()})
-            fireworks.forEach(f => {f.update(); f.draw()})
-            requestAnimationFrame(render);
-        }
-        render();
-    </script>
+class Firework{
+  constructor(){
+    this.x = Math.random()*width;
+    this.y = height;
+    this.targetY = Math.random()*height*0.42;
+    this.speedY = -6 - Math.random()*2.8;
+    this.particles = [];
+    this.exploded = false;
+    this.color = `hsl(${Math.random()*360},100%,62%)`;
+  }
+  update(){
+    if(!this.exploded){
+      this.y += this.speedY;
+      ctx.beginPath();
+      ctx.moveTo(this.x,this.y+8);
+      ctx.lineTo(this.x,this.y);
+      ctx.strokeStyle = this.color;
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+      if(this.y <= this.targetY){
+        this.explode();
+        this.exploded = true;
+        const audio = document.getElementById('boomAudio');
+        audio.currentTime = 0;
+        audio.play().catch(()=>{});
+      }
+    }else{
+      this.particles.forEach(p=>{
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.11;
+        p.life--;
+      });
+      this.particles = this.particles.filter(p=>p.life>0);
+    }
+  }
+  explode(){
+    for(let i=0;i<85;i++){
+      const angle = Math.PI*2/85*i;
+      const spd = Math.random()*4.2+1.8;
+      this.particles.push({
+        x:this.x,y:this.y,
+        vx:Math.cos(angle)*spd,
+        vy:Math.sin(angle)*spd,
+        life:65,color:this.color
+      });
+    }
+  }
+  draw(){
+    if(!this.exploded){
+      ctx.beginPath();
+      ctx.arc(this.x,this.y,2.8,0,Math.PI*2);
+      ctx.fillStyle='#fff';
+      ctx.fill();
+    }else{
+      this.particles.forEach(p=>{
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,1.8,0,Math.PI*2);
+        ctx.fillStyle=p.color;
+        ctx.fill();
+      });
+    }
+  }
+}
+const fireworks = [];
+setInterval(()=>fireworks.push(new Firework()),850);
+function renderFire(){
+  ctx.fillStyle='rgba(0,0,0,0.13)';
+  ctx.fillRect(0,0,width,height);
+  fireworks.forEach(f=>{f.update();f.draw();});
+  requestAnimationFrame(renderFire);
+}
+renderFire();
+
+// 微信音频解锁
+document.body.addEventListener('touchstart',()=>{
+  const audio = document.getElementById('boomAudio');
+  audio.volume = 0.4;
+},{once:true});
+</script>
 </body>
 </html>
