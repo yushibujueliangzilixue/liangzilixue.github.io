@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>父亲节快乐</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        body {
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+        }
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        .text-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 99;
+            font-size: 8vw;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 15px #ffd700, 0 0 30px #ff6600;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="text-box">老逗，父亲节快乐！</div>
+    <canvas id="starCanvas"></canvas>
+    <script>
+        // 星云星空粒子
+        const canvas = document.getElementById('starCanvas');
+        const ctx = canvas.getContext('2d');
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        })
+
+        class Star {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.r = Math.random() * 1.5 + 0.3;
+                this.speed = Math.random() * 0.3 + 0.1;
+                this.opacity = Math.random();
+            }
+            update() {
+                this.x -= this.speed;
+                if(this.x < 0) this.x = width;
+                this.opacity = Math.sin(Date.now() / 1000 + this.y) * 0.5 + 0.5;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(220, 180, 255, ${this.opacity})`;
+                ctx.fill();
+            }
+        }
+
+        const stars = Array.from({length: 600}, () => new Star());
+
+        // 烟花逻辑
+        class Firework {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = height;
+                this.targetY = Math.random() * height * 0.4;
+                this.speedY = -6 - Math.random() * 3;
+                this.particles = [];
+                this.exploded = false;
+                this.color = `hsl(${Math.random() * 360}, 100%, 60%)`;
+            }
+            update() {
+                if (!this.exploded) {
+                    this.y += this.speedY;
+                    if(this.y <= this.targetY) {
+                        this.explode();
+                        this.exploded = true;
+                    }
+                } else {
+                    this.particles.forEach(p => {
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.vy += 0.12;
+                        p.life--;
+                    })
+                    this.particles = this.particles.filter(p => p.life > 0);
+                }
+            }
+            explode() {
+                for(let i = 0; i < 80; i++) {
+                    const angle = Math.PI * 2 / 80 * i;
+                    const spd = Math.random() * 4 + 2;
+                    this.particles.push({
+                        x: this.x,
+                        y: this.y,
+                        vx: Math.cos(angle) * spd,
+                        vy: Math.sin(angle) * spd,
+                        life: 60,
+                        color: this.color
+                    })
+                }
+            }
+            draw() {
+                if(!this.exploded) {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 3, 0, Math.PI*2);
+                    ctx.fillStyle = '#fff';
+                    ctx.fill();
+                } else {
+                    this.particles.forEach(p => {
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, 2, 0, Math.PI*2);
+                        ctx.fillStyle = p.color;
+                        ctx.fill();
+                    })
+                }
+            }
+        }
+
+        const fireworks = [];
+        setInterval(() => fireworks.push(new Firework()), 800)
+
+        function render() {
+            ctx.fillStyle = 'rgba(0,0,8,0.15)';
+            ctx.fillRect(0,0,width,height);
+            stars.forEach(s => {s.update(); s.draw()})
+            fireworks.forEach(f => {f.update(); f.draw()})
+            requestAnimationFrame(render);
+        }
+        render();
+    </script>
+</body>
+</html>
