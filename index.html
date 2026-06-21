@@ -18,7 +18,7 @@ audio{display:none;}
 </head>
 <body>
 <canvas id="canvas"></canvas>
-<div class="tip">拖动旋转 | 双指缩放</div>
+<div class="tip">拖动旋转星云 | 双指缩放远近</div>
 <audio id="boom" preload="auto">
 <source src="https://assets.mixkit.co/sfx/preview/mixkit-firework-burst-2796.mp3" type="audio/mpeg">
 
@@ -47,16 +47,16 @@ const fireworks = [];
 function initStars() {
     for(let i=0;i<starCount;i++) {
         stars.push({
-            x: (Math.random()-0.5)*2000,
-            y: (Math.random()-0.5)*2000,
-            z: (Math.random()-0.5)*2000,
-            size: Math.random()*2 + 0.3,
-            brightness: Math.random()*0.6 + 0.2
+            x: (Math.random()-0.5)*2500, // 扩大星云范围
+            y: (Math.random()-0.5)*2500,
+            z: (Math.random()-0.5)*2500,
+            size: Math.random()*2.5 + 0.3,
+            brightness: Math.random()*0.7 + 0.2
         });
     }
 }
 
-// 绘制3D星空
+// 绘制3D星空（强化透视效果）
 function drawStars() {
     stars.forEach(star => {
         // 3D坐标变换
@@ -78,8 +78,8 @@ function drawStars() {
         nz = y*sinX + z*cosX;
         y = ny; z = nz;
 
-        // 透视投影
-        let perspective = 1000/(1000+z);
+        // 增强透视强度，3D效果更明显
+        let perspective = 800/(800+z);
         let screenX = width/2 + x*perspective*scale;
         let screenY = height/2 + y*perspective*scale;
         let size = star.size*perspective*scale;
@@ -87,13 +87,13 @@ function drawStars() {
         if(screenX>0 && screenX<width && screenY>0 && screenY<height && size>0.1) {
             ctx.beginPath();
             ctx.arc(screenX, screenY, size, 0, Math.PI*2);
-            ctx.fillStyle = `rgba(220,200,255,${star.brightness*perspective})`;
+            ctx.fillStyle = `rgba(220,200,255,${star.brightness*perspective*1.2})`;
             ctx.fill();
         }
     });
 }
 
-// 绘制绝对清晰的立体文字（纯Canvas绘制，无CSS兼容问题）
+// 绘制文字（主标题+空两行+落款）
 function drawText() {
     ctx.save();
     ctx.translate(width/2, height/2);
@@ -107,25 +107,25 @@ function drawText() {
     // 黑色描边（最外层）
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 6;
-    ctx.strokeText('老逗，父亲节快乐！', 0, -30);
+    ctx.strokeText('老逗，父亲节快乐！', 0, -40);
 
     // 白色填充
     ctx.fillStyle = '#fff';
-    ctx.fillText('老逗，父亲节快乐！', 0, -30);
+    ctx.fillText('老逗，父亲节快乐！', 0, -40);
 
     // 金色发光
     ctx.shadowColor = '#ffaa00';
     ctx.shadowBlur = 25;
-    ctx.fillText('老逗，父亲节快乐！', 0, -30);
+    ctx.fillText('老逗，父亲节快乐！', 0, -40);
 
-    // 落款
+    // 落款：空两行显示
     ctx.font = 'bold 4vw Microsoft YaHei';
     ctx.shadowBlur = 15;
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 4;
-    ctx.strokeText('——何建鹏', 0, 50);
+    ctx.strokeText('——何建鹏', 0, 100); // y坐标从50改成100，空出两行
     ctx.fillStyle = '#fffbe0';
-    ctx.fillText('——何建鹏', 0, 50);
+    ctx.fillText('——何建鹏', 0, 100);
 
     ctx.restore();
 }
@@ -201,7 +201,7 @@ class Firework {
     }
 }
 
-// 手势交互
+// 手势交互（提高旋转灵敏度）
 function getTouchDist(touches) {
     const dx = touches[0].clientX - touches[1].clientX;
     const dy = touches[0].clientY - touches[1].clientY;
@@ -227,8 +227,8 @@ document.addEventListener('touchmove', e => {
     if(e.touches.length === 1) {
         const dx = e.touches[0].clientX - touchStartX;
         const dy = e.touches[0].clientY - touchStartY;
-        rotateY += dx * 0.3;
-        rotateX -= dy * 0.3;
+        rotateY += dx * 0.4; // 提高旋转灵敏度
+        rotateX -= dy * 0.4;
         touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
     } else if(e.touches.length === 2) {
@@ -259,9 +259,9 @@ function render() {
         if(scale > targetScale) scale = targetScale;
     }
 
-    // 自动缓慢旋转（无触摸时）
+    // 提高自动旋转速度，3D效果更明显
     if(!isTouch) {
-        rotateY += 0.05;
+        rotateY += 0.08;
     }
 
     drawStars();
@@ -269,7 +269,12 @@ function render() {
 
     // 更新绘制烟花
     fireworks.forEach(f => {f.update(); f.draw();});
-    fireworks.filter(f => f.exploded && f.particles.length === 0);
+    // 清理已结束的烟花
+    for(let i=fireworks.length-1;i>=0;i--) {
+        if(fireworks[i].exploded && fireworks[i].particles.length === 0) {
+            fireworks.splice(i,1);
+        }
+    }
 
     requestAnimationFrame(render);
 }
